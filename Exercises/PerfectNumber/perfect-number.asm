@@ -1,3 +1,5 @@
+;the answer will be in r12 as a boolean
+
 section .data
     number dq 8128          ;target number(we want to see if it is a perfect number or not)
 section .text

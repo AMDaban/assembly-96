@@ -1,0 +1,4 @@
+*.o
+
+# executables
+Exercises/PerfectNumber/perfect-number

@@ -1,5 +1,5 @@
 section .data
-    firstOperand dw 60     ;first operand
+    firstOperand dw 60      ;first operand
     secondOperand dw 220    ;second operand 
 section .text
     global _start

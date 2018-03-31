@@ -5,6 +5,12 @@ section .data
     first_message db 'Simple Calculator: (write a simple expression)', 10
     first_message_len equ $ - first_message
 
+    error_message db 'bad expression', 10
+    error_message_len equ $ - error_message
+
+    overflow_message db 'overflow', 10
+    overflow_message_len equ $ - overflow_message
+
     exp_max_size equ 50                     ;expression max size
     integer_max_size equ 19                 ;integer max size
 
@@ -249,6 +255,82 @@ _evaluate_string:                           ;evaluate string stored in expressio
         inc esi
     loop evaluatestring_mainloop
 
+    xor rax, rax
+    
+    cmp [first_operand], byte 0
+    je evaluatestring_error
+
+    cmp [operation], byte 0
+    je evaluatestring_error
+
+    cmp [second_operand], byte 0
+    je evaluatestring_error
+
+    cmp [operation], byte 1
+    jne evaluatestring_notplus
+    mov rax, [first_operand]
+    add rax, [second_operand]
+    jno evaluatestring_return
+
+    xor rax, rax
+    call _print_overflow
+
+    jmp evaluatestring_return
+
+    evaluatestring_notplus:
+
+    cmp [operation], byte 2
+    jne evaluatestring_notminus
+    mov rax, [first_operand]
+    sub rax, [second_operand]
+    jno evaluatestring_return
+
+    xor rax, rax
+    call _print_overflow
+
+    jmp evaluatestring_return
+
+    evaluatestring_notminus:
+
+    cmp [operation], byte 3
+    jne evaluatestring_notmult
+    mov rax, [first_operand]
+    mov rbx, [second_operand]
+    mul rbx
+    jno evaluatestring_return
+
+    xor rax, rax
+    call _print_overflow
+
+    jmp evaluatestring_return
+
+    evaluatestring_notmult:
+
+    cmp [operation], byte 4
+    jne evaluatestring_notdivide
+    xor rdx, rdx
+    mov rax, [first_operand]
+    mov rbx, [second_operand]
+    div rbx
+    jno evaluatestring_return
+
+    xor rax, rax
+    call _print_overflow
+
+    jmp evaluatestring_return
+
+    evaluatestring_notdivide:
+
+    evaluatestring_error:
+    mov rax, error_message                  ;print error_message
+    mov [msg], rax
+    mov rax, error_message_len
+    mov [msglen], rax
+    call _print_string
+
+    xor rax, rax
+
+    evaluatestring_return:
     mov esi, r12d                           ;restore previous values
     mov rcx, r13
     ret
@@ -342,5 +424,18 @@ _copy_input_array_to_expression_array:      ;copy input into expression
     mov esi, r9d
     mov edi, r10d
 
+    ret
+;-------------------------------------------
+_print_overflow:
+
+    mov r9, rax                             ;store previous values   
+
+    mov rax, overflow_message               ;print overflow_message
+    mov [msg], rax
+    mov rax, overflow_message_len
+    mov [msglen], rax
+    call _print_string
+
+    mov rax, r9                             ;restore previous valuse
     ret
 ;-------------------------------------------

@@ -8,6 +8,11 @@ section .data
     exp_max_size equ 50                     ;expression max size
     integer_max_size equ 19                 ;integer max size
 
+    first_operand dq 0                      ;first operand in expression
+    second_operand dq 0                     ;second operand in expression
+    numbers_read db 0                       ;numbers read in expression
+    operation db 0                          ;specify operation(1 -> +, 2 -> -, 3 -> *, 4 -> /)
+
 section .bss
     input resb exp_max_size                 ;user input
     number_chars resb integer_max_size      ;characters that specify a number
@@ -30,7 +35,7 @@ _start:
 
     call _copy_input_array_to_expression_array
 
-    call _evaluate_string
+    call _evaluate_string                   ;evaluate first expression
 
 exit:
     mov ebx, 0
@@ -41,6 +46,11 @@ exit:
 
 _print_string:                              ;simply print the string with length msglen that its address stored in msg
     
+    mov r8d, eax                            ;store previous values
+    mov r9d, ebx
+    mov r10d, ecx
+    mov r11d, edx  
+
     mov eax, 4                              ;'write' system call
     mov ebx, 1                              ;file descriptor 1 = screen
     mov ecx, [msg]                          ;string to write       
@@ -48,11 +58,20 @@ _print_string:                              ;simply print the string with length
  
     int 80h                                 ;call the kernel
     
+    mov eax, r8d                            ;restore previous values
+    mov ebx, r9d
+    mov ecx, r10d
+    mov edx, r11d
     ret
 
 ;-------------------------------------------
 
 _get_user_input:                            ;simply get user input and store it in the input array(max length = 100 character)
+
+    mov r8, rax                             ;store previous values
+    mov r9, rdi
+    mov r10, rsi
+    mov r11, rdx 
 
     mov rax, 0                              ;'read' system call
     mov rdi, 0                              ;standard input
@@ -61,11 +80,18 @@ _get_user_input:                            ;simply get user input and store it 
     
     syscall                                 ;call the kernel
 
+    mov rax, r8                             ;restore previous values
+    mov rdi, r9
+    mov rsi, r10
+    mov rdx, r11
     ret
 
 ;-------------------------------------------
 
 _clear_input_array:                         ;clear input array
+    
+    mov r9, rcx                             ;store previous values
+    mov r10d, esi
 
     mov rcx, exp_max_size
     mov esi, input
@@ -75,10 +101,15 @@ _clear_input_array:                         ;clear input array
         inc esi
     loop clearinputloop
 
+    mov rcx, r9                             ;restore previous values
+    mov esi, r10d
     ret
 ;-------------------------------------------
 
 _clear_number_chars_array:                  ;clear number_chars array
+
+    mov r9, rcx                             ;store previous values
+    mov r10d, esi 
 
     mov rcx, integer_max_size
     mov esi, number_chars
@@ -88,10 +119,15 @@ _clear_number_chars_array:                  ;clear number_chars array
         inc esi
     loop clearnumbercharsloop
 
+    mov rcx, r9                             ;restore previous values
+    mov esi, r10d
     ret
 ;-------------------------------------------
 
 _string_to_integer:                         ;convert string which is in number_chars to (unsigned)integer(stored in rax)
+
+    mov r12d, esi                           ;store previous values
+    mov r14, rcx
 
     mov esi, number_chars       
     mov rcx, integer_max_size
@@ -130,7 +166,9 @@ _string_to_integer:                         ;convert string which is in number_c
 
         jno notoverflow
 
-        xor rax, rax
+        xor rax, rax                        ;restore previous values
+        mov esi, r12d
+        mov rcx, r14
         ret
 
         notoverflow:
@@ -145,11 +183,16 @@ _string_to_integer:                         ;convert string which is in number_c
 
     mov rax, r10
 
+    mov esi, r12d                           ;restore previous values
+    mov rcx, r14
     ret
 
 ;-------------------------------------------
 
-_evaluate_string:                           ;evaluate string stored in expression
+_evaluate_string:                           ;evaluate string stored in expression(result will be in rax)
+
+    mov r12d, esi                           ;store previous values
+    mov r13, rcx
 
     mov rcx, exp_max_size
     mov esi, expression
@@ -157,37 +200,129 @@ _evaluate_string:                           ;evaluate string stored in expressio
     xor r8, r8
     mov r8b, 0                              ;specify operation(1 -> +, 2 -> -, 3 -> *, 4 -> /)
 
-    xor r10, r10
+    xor r10, r10                            ;auxiliary register
 
     evaluatestring_mainloop:
-        mov al, [esi]
-        cmp [esi], byte 0
-        je end_evaluatestring_mainloop
+        
+        cmp [esi], byte 101                 ;exit read
+        je exit
 
         cmp [esi], byte 43                  ;+ read
-        mov r10, 1
-        cmove r8, r10
+        mov r10b, 1
+        jne evaluatestring_notequal_plus
+        mov [operation], r10b
+        evaluatestring_notequal_plus:
+        je end_evaluatestring_mainloop
 
         cmp [esi], byte 45                  ;- read
-        mov r10, 2
-        cmove r8, r10
+        mov r10b, 2
+        jne evaluatestring_notequal_minus
+        mov [operation], r10b
+        evaluatestring_notequal_minus:
+        je end_evaluatestring_mainloop
 
         cmp [esi], byte 42                  ;* read
-        mov r10, 3
-        cmove r8, r10
+        mov r10b, 3
+        jne evaluatestring_notequal_mult
+        mov [operation], r10b
+        evaluatestring_notequal_mult:
+        je end_evaluatestring_mainloop
 
         cmp [esi], byte 47                  ;/ read
-        mov r10, 4
-        cmove r8, r10
+        mov r10b, 4
+        jne evaluatestring_notequal_div
+        mov [operation], r10b
+        evaluatestring_notequal_div:
+        je end_evaluatestring_mainloop
 
-    end_evaluatestring_mainloop:
+        cmp [esi], byte 48                  ;check if the digit is a number(it must be between 48, 57)
+        jl  end_evaluatestring_mainloop
+    
+        cmp [esi], byte 57
+        jg  end_evaluatestring_mainloop
+
+        call _extract_integer
+        
+        call _fill_operands
+
+    end_evaluatestring_mainloop: 
         inc esi
     loop evaluatestring_mainloop
+
+    mov esi, r12d                           ;restore previous values
+    mov rcx, r13
+    ret
+
+;-------------------------------------------
+
+_fill_operands:
+
+    cmp [numbers_read], byte 0
+    jne evaluatestring_notequal
+    mov [first_operand], rax
+    jmp evaluatestring_addtonumbersread
+    evaluatestring_notequal:
+    mov [second_operand], rax
+    evaluatestring_addtonumbersread:
+    add [numbers_read], byte 1
+
+    ret
+
+;-------------------------------------------
+
+_extract_integer:
+
+    mov r10d, edi                           ;store previous values
+    mov r11, rbx
+
+    mov rbx, rcx
+
+    mov edi, number_chars
+    mov rcx, integer_max_size
+
+    call _clear_number_chars_array
+
+    extractinteger_mainloop:
+    
+    cmp [esi], byte 48                      ;check if the digit is a number(it must be between 48, 57)
+    jl  extractinteger_finilize
+    
+    cmp [esi], byte 57
+    jg  extractinteger_finilize
+
+    mov al, [esi]
+    mov [edi], al
+
+    inc esi
+    dec rbx
+
+    inc edi
+
+    cmp rbx, 0
+    je extractinteger_finilize
+
+    loop extractinteger_mainloop
+
+extractinteger_finilize:
+
+    call _string_to_integer
+
+    inc rbx
+    mov rcx, rbx
+
+    dec esi 
+
+    mov edi, r10d                           ;restore previous values
+    mov rbx, r11
 
     ret
 
 ;-------------------------------------------
 _copy_input_array_to_expression_array:      ;copy input into expression
+
+    mov r8, rcx
+    mov r9d, esi
+    mov r10d, edi
 
     mov rcx, exp_max_size
     mov esi, input
@@ -202,6 +337,10 @@ _copy_input_array_to_expression_array:      ;copy input into expression
     inc edi 
 
     loop copyinputarraytoexpressionarray_mainloop
+
+    mov rcx, r8
+    mov esi, r9d
+    mov edi, r10d
 
     ret
 ;-------------------------------------------

@@ -19,6 +19,8 @@ section .data
     numbers_read db 0                       ;numbers read in expression
     operation db 0                          ;specify operation(1 -> +, 2 -> -, 3 -> *, 4 -> /)
 
+    number_length db 0                      ;length of output number
+
 section .bss
     input resb exp_max_size                 ;user input
     number_chars resb integer_max_size      ;characters that specify a number
@@ -42,6 +44,22 @@ _start:
     call _copy_input_array_to_expression_array
 
     call _evaluate_string                   ;evaluate first expression
+
+    call _clear_expression_array
+    call _clear_input_array
+    call _clear_number_chars_array
+
+    call _copy_bcdnumber
+
+    mov rax, expression                     ;print first_message
+    mov [msg], rax
+    mov rax, [number_length]
+    mov [msglen], rax
+    call _print_string
+
+    mov [number_length], byte 0
+
+    call _get_user_input
 
 exit:
     mov ebx, 0
@@ -90,6 +108,25 @@ _get_user_input:                            ;simply get user input and store it 
     mov rdi, r9
     mov rsi, r10
     mov rdx, r11
+    ret
+
+;-------------------------------------------
+
+_clear_expression_array:                         ;clear input array
+    
+    mov r9, rcx                             ;store previous values
+    mov r10d, esi
+
+    mov rcx, exp_max_size
+    mov esi, expression
+    clearexploop:
+        xor r8, r8
+        mov [esi], r8b
+        inc esi
+    loop clearexploop
+
+    mov rcx, r9                             ;restore previous values
+    mov esi, r10d
     ret
 
 ;-------------------------------------------
@@ -439,3 +476,37 @@ _print_overflow:
     mov rax, r9                             ;restore previous valuse
     ret
 ;-------------------------------------------
+_copy_bcdnumber:
+
+    mov r10, rsi                             ;store previous values
+
+    mov r8, rax
+    mov esi, expression
+
+    copybcdnumber_mainloop:
+
+    xor rdx, rdx
+    mov rax, r8
+    mov r9, 10
+    div r9
+
+    add rdx, 48
+    mov [esi], dl
+
+    inc esi
+    mov r8, rax
+    mov r9b, [number_length]
+    inc r9b
+    mov [number_length], r9b
+
+    cmp r8, 0
+    jne copybcdnumber_mainloop
+
+    mov [esi], byte 32
+    mov r9b, [number_length]
+    inc r9b
+    mov [number_length], r9b
+
+    mov rsi, r10                             ;restore previous valuse
+    ret
+;-------------------------------------------    

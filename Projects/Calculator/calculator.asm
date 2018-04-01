@@ -21,6 +21,9 @@ section .data
 
     number_length db 0                      ;length of output number
 
+    is_negative db 0                        ;show that the number is negative or not
+    is_result_negative db 0                 ;show that the result is negative or not
+
 section .bss
     input resb exp_max_size                 ;user input
     number_chars resb integer_max_size      ;characters that specify a number
@@ -57,7 +60,8 @@ evaluate:
 
     mov rax, expression                     ;print result
     mov [msg], rax
-    mov rax, [number_length]
+    xor rax, rax
+    mov al, [number_length]
     mov [msglen], rax
     call _print_string
 
@@ -68,6 +72,8 @@ evaluate:
     mov [number_length], byte 0
     mov [operation], byte 0
     mov [numbers_read], byte 0
+    mov [is_negative], byte 0
+    mov [is_result_negative], byte 0
 
     jmp evaluate
 
@@ -249,6 +255,32 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     mov rcx, exp_max_size
     mov esi, expression
+    xor r10, r10
+
+    evaluatestring_firstloop:
+         
+        cmp [esi], byte 101                 ;exit read
+        je exit
+
+        cmp [esi], byte 45                  ;- read
+        mov r10b, 1
+        jne evaluatestring_notequal_minus_first
+        mov [is_negative], r10b
+        evaluatestring_notequal_minus_first:
+        
+        cmp [esi], byte 48                  ;check if the digit is a number(it must be between 48, 57)
+        jl  end_evaluatestring_firstloop
+    
+        cmp [esi], byte 57
+        jg  end_evaluatestring_firstloop
+
+        jmp evaluatestring_after_firstloop
+
+    end_evaluatestring_firstloop:
+        inc esi
+    loop evaluatestring_firstloop
+
+    evaluatestring_after_firstloop:
 
     xor r8, r8
     mov r8b, 0                              ;specify operation(1 -> +, 2 -> -, 3 -> *, 4 -> /)
@@ -310,6 +342,16 @@ _evaluate_string:                           ;evaluate string stored in expressio
     cmp [operation], byte 0
     je evaluatestring_error
 
+    mov rdx, [first_operand]
+    cmp [is_negative], byte 0
+    je evaluatestring_aftercheck
+        neg rdx
+        mov [first_operand], rdx
+    evaluatestring_aftercheck:
+
+    xor rax, rax
+    xor rdx, rdx
+
     cmp [operation], byte 1
     jne evaluatestring_notplus
     mov rax, [first_operand]
@@ -360,7 +402,22 @@ _evaluate_string:                           ;evaluate string stored in expressio
     cmp rbx, 0
     je evaluatestring_error
 
-    idiv rbx
+    xor r14, r14
+    cmp rax, 0
+    jnl divnotneg
+        mov r14, 1
+        neg rax
+    divnotneg:
+
+    div rbx
+
+    cmp r14, 1
+    jne after_check
+
+    neg rax
+
+    after_check:
+    
     jno evaluatestring_return
 
     xor rax, rax
@@ -384,6 +441,8 @@ _evaluate_string:                           ;evaluate string stored in expressio
     mov [number_length], byte 0
     mov [operation], byte 0
     mov [numbers_read], byte 0
+    mov [is_negative], byte 0
+    mov [is_result_negative], byte 0
 
     call _clear_expression_array
     call _clear_input_array
@@ -392,6 +451,13 @@ _evaluate_string:                           ;evaluate string stored in expressio
     jmp start_computing
 
     evaluatestring_return:
+
+    cmp rax, 0
+    jnl evaluatestring_notnegative
+        mov [is_result_negative], byte 1
+        neg rax
+    evaluatestring_notnegative:
+
     mov esi, r12d                           ;restore previous values
     mov rcx, r13
     ret
@@ -510,6 +576,17 @@ _copy_bcdnumber:
 
     mov r8, rax
     mov esi, expression
+
+    cmp [is_result_negative], byte 0
+    je copybcdnumber_not_negative
+
+    mov [esi], byte 45
+    inc esi
+    mov r9b, [number_length]
+    inc r9b
+    mov [number_length], r9b
+
+    copybcdnumber_not_negative:
 
     mov r11, rax
     copybcdnumber_count:

@@ -36,12 +36,16 @@ _start:
     mov [msglen], rax
     call _print_string
 
+start_computing:
+
     call _clear_input_array
     call _clear_number_chars_array
 
     call _get_user_input                    ;get first user input
 
     call _copy_input_array_to_expression_array
+
+evaluate:
 
     call _evaluate_string                   ;evaluate first expression
 
@@ -51,15 +55,20 @@ _start:
 
     call _copy_bcdnumber
 
-    mov rax, expression                     ;print first_message
+    mov rax, expression                     ;print result
     mov [msg], rax
     mov rax, [number_length]
     mov [msglen], rax
     call _print_string
 
-    mov [number_length], byte 0
+    call _get_user_input                    ;get next input
 
-    call _get_user_input
+    call _copy_input_array_to_expression_array
+
+    mov [number_length], byte 0
+    mov [numbers_read], byte 0
+
+    jmp evaluate
 
 exit:
     mov ebx, 0
@@ -285,7 +294,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
         jg  end_evaluatestring_mainloop
 
         call _extract_integer
-        
+    
         call _fill_operands
 
     end_evaluatestring_mainloop: 
@@ -294,13 +303,10 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     xor rax, rax
     
-    cmp [first_operand], byte 0
-    je evaluatestring_error
+    cmp [numbers_read], byte 2
+    jl evaluatestring_error
 
     cmp [operation], byte 0
-    je evaluatestring_error
-
-    cmp [second_operand], byte 0
     je evaluatestring_error
 
     cmp [operation], byte 1
@@ -344,10 +350,15 @@ _evaluate_string:                           ;evaluate string stored in expressio
     evaluatestring_notmult:
 
     cmp [operation], byte 4
-    jne evaluatestring_notdivide
+    jne evaluatestring_notdivide 
+
     xor rdx, rdx
     mov rax, [first_operand]
     mov rbx, [second_operand]
+
+    cmp rbx, 0
+    je evaluatestring_error
+
     div rbx
     jno evaluatestring_return
 
@@ -366,6 +377,17 @@ _evaluate_string:                           ;evaluate string stored in expressio
     call _print_string
 
     xor rax, rax
+    mov esi, r12d                           ;restore previous values
+    mov rcx, r13
+
+    mov [number_length], byte 0
+    mov [numbers_read], byte 0
+
+    call _clear_expression_array
+    call _clear_input_array
+    call _clear_number_chars_array
+
+    jmp start_computing
 
     evaluatestring_return:
     mov esi, r12d                           ;restore previous values
@@ -444,9 +466,13 @@ _copy_input_array_to_expression_array:      ;copy input into expression
     mov r10d, edi
 
     mov rcx, exp_max_size
+    sub cl, [number_length]
+
     mov esi, input
-    mov edi, expression
     
+    mov edi, expression
+    add dil, [number_length]
+
     copyinputarraytoexpressionarray_mainloop:
 
     mov al, [esi]
@@ -483,6 +509,30 @@ _copy_bcdnumber:
     mov r8, rax
     mov esi, expression
 
+    mov r11, rax
+    copybcdnumber_count:
+
+    xor rdx, rdx
+    mov rax, r11
+    mov r9, 10
+    div r9
+
+    inc esi
+    mov r11, rax
+    mov r9b, [number_length]
+    inc r9b
+    mov [number_length], r9b
+
+    cmp r11, 0
+    jne copybcdnumber_count
+
+    mov [esi], byte 32
+    mov r9b, [number_length]
+    inc r9b
+    mov [number_length], r9b
+
+    dec esi
+
     copybcdnumber_mainloop:
 
     xor rdx, rdx
@@ -493,19 +543,11 @@ _copy_bcdnumber:
     add rdx, 48
     mov [esi], dl
 
-    inc esi
+    dec esi
     mov r8, rax
-    mov r9b, [number_length]
-    inc r9b
-    mov [number_length], r9b
 
     cmp r8, 0
     jne copybcdnumber_mainloop
-
-    mov [esi], byte 32
-    mov r9b, [number_length]
-    inc r9b
-    mov [number_length], r9b
 
     mov rsi, r10                             ;restore previous valuse
     ret

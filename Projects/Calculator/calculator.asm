@@ -66,6 +66,7 @@ evaluate:
     call _copy_input_array_to_expression_array
 
     mov [number_length], byte 0
+    mov [operation], byte 0
     mov [numbers_read], byte 0
 
     jmp evaluate
@@ -339,7 +340,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
     jne evaluatestring_notmult
     mov rax, [first_operand]
     mov rbx, [second_operand]
-    mul rbx
+    imul rbx
     jno evaluatestring_return
 
     xor rax, rax
@@ -359,7 +360,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
     cmp rbx, 0
     je evaluatestring_error
 
-    div rbx
+    idiv rbx
     jno evaluatestring_return
 
     xor rax, rax
@@ -381,6 +382,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
     mov rcx, r13
 
     mov [number_length], byte 0
+    mov [operation], byte 0
     mov [numbers_read], byte 0
 
     call _clear_expression_array

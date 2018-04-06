@@ -257,6 +257,9 @@ _evaluate_string:                           ;evaluate string stored in expressio
     mov esi, expression
     xor r10, r10
 
+    cmp [esi], byte 10
+    je evaluatestring_error
+
     evaluatestring_firstloop:
          
         cmp [esi], byte 101                 ;exit read

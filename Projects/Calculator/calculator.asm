@@ -2,6 +2,7 @@ section .data
     msg dq 0                                ;string address which will be written
     msglen dq 0                             ;string length which will be written
 
+    ;some messages that used in program
     first_message db 'Simple Calculator: (write a simple expression)', 10
     first_message_len equ $ - first_message
 
@@ -41,41 +42,42 @@ _start:
 
 start_computing:
 
-    call _clear_input_array
-    call _clear_number_chars_array
+    call _clear_input_array                 ;clear input array
+    call _clear_number_chars_array          ;clear number_chars array
 
     call _get_user_input                    ;get first user input
 
+    ;copy input array into expression array
     call _copy_input_array_to_expression_array
 
 evaluate:
 
     call _evaluate_string                   ;evaluate first expression
 
-    call _clear_expression_array
-    call _clear_input_array
-    call _clear_number_chars_array
+    call _clear_expression_array            ;clear expression array
+    call _clear_input_array                 ;clear input array
+    call _clear_number_chars_array          ;clear number_chars array
 
-    call _copy_bcdnumber
+    call _copy_bcdnumber                    ;copy result into expression array
 
-    mov rax, expression                     ;print result
+    mov rax, expression                     ;print result (stored in expression array)
     mov [msg], rax
     xor rax, rax
     mov al, [number_length]
     mov [msglen], rax
     call _print_string
 
-    call _get_user_input                    ;get next input
+    call _get_user_input                    ;get next user input
 
     call _copy_input_array_to_expression_array
 
-    mov [number_length], byte 0
+    mov [number_length], byte 0             ;clear variables for next input
     mov [operation], byte 0
     mov [numbers_read], byte 0
     mov [is_negative], byte 0
     mov [is_result_negative], byte 0
 
-    jmp evaluate
+    jmp evaluate                            ;jump back and continue
 
 exit:
     mov ebx, 0
@@ -128,14 +130,14 @@ _get_user_input:                            ;simply get user input and store it 
 
 ;-------------------------------------------
 
-_clear_expression_array:                         ;clear input array
+_clear_expression_array:                    ;clear input array
     
     mov r9, rcx                             ;store previous values
     mov r10d, esi
 
     mov rcx, exp_max_size
     mov esi, expression
-    clearexploop:
+    clearexploop:                           ;this loop clears expression array
         xor r8, r8
         mov [esi], r8b
         inc esi
@@ -154,7 +156,7 @@ _clear_input_array:                         ;clear input array
 
     mov rcx, exp_max_size
     mov esi, input
-    clearinputloop:
+    clearinputloop:                         ;this loop clears input array
         xor r8, r8
         mov [esi], r8b
         inc esi
@@ -172,7 +174,7 @@ _clear_number_chars_array:                  ;clear number_chars array
 
     mov rcx, integer_max_size
     mov esi, number_chars
-    clearnumbercharsloop:
+    clearnumbercharsloop:                   ;this loop clears number_chars array 
         xor r8, r8
         mov [esi], r8b
         inc esi
@@ -192,8 +194,7 @@ _string_to_integer:                         ;convert string which is in number_c
     mov rcx, integer_max_size
     xor r8, r8                              ;store number of digits
 
-    stringtointegerloop_countdigits:        
-                                            ;count number of digits (will be stored in r8d)
+    stringtointegerloop_countdigits:        ;count number of digits (will be stored in r8d)
         
         cmp [esi], byte 0                   ;check if [esi] is a number or not(if [esi] is 0 then it is not a number)
         
@@ -339,7 +340,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     xor rax, rax
     
-    cmp [numbers_read], byte 2
+    cmp [numbers_read], byte 2              ;check if the expression is valid
     jl evaluatestring_error
 
     cmp [operation], byte 0
@@ -355,7 +356,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
     xor rax, rax
     xor rdx, rdx
 
-    cmp [operation], byte 1
+    cmp [operation], byte 1                 ;check if the expression is +
     jne evaluatestring_notplus
     mov rax, [first_operand]
     add rax, [second_operand]
@@ -368,7 +369,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     evaluatestring_notplus:
 
-    cmp [operation], byte 2
+    cmp [operation], byte 2                 ;check if the expression is -
     jne evaluatestring_notminus
     mov rax, [first_operand]
     sub rax, [second_operand]
@@ -381,7 +382,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     evaluatestring_notminus:
 
-    cmp [operation], byte 3
+    cmp [operation], byte 3                 ;check if the expression is *
     jne evaluatestring_notmult
     mov rax, [first_operand]
     mov rbx, [second_operand]
@@ -395,7 +396,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     evaluatestring_notmult:
 
-    cmp [operation], byte 4
+    cmp [operation], byte 4                 ;check if the expression is /
     jne evaluatestring_notdivide 
 
     xor rdx, rdx
@@ -482,7 +483,7 @@ _fill_operands:
 
 ;-------------------------------------------
 
-_extract_integer:
+_extract_integer:                           ;extract integer which esi points to and store its characters in number_chars array
 
     mov r10d, edi                           ;store previous values
     mov r11, rbx
@@ -573,9 +574,9 @@ _print_overflow:
     mov rax, r9                             ;restore previous valuse
     ret
 ;-------------------------------------------
-_copy_bcdnumber:
+_copy_bcdnumber:                            ;convert number to string and store its characters in expression array
 
-    mov r10, rsi                             ;store previous values
+    mov r10, rsi                            ;store previous values
 
     mov r8, rax
     mov esi, expression

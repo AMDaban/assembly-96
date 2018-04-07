@@ -22,8 +22,9 @@ section .data
 
     number_length db 0                      ;length of output number
 
-    is_negative db 0                        ;show that the number is negative or not
+    is_negative db 0                        ;show that the first operand is negative or not
     is_result_negative db 0                 ;show that the result is negative or not
+    is_second_operand_negative db 0         ;show that the second operand is negative
 
 section .bss
     input resb exp_max_size                 ;user input
@@ -76,6 +77,7 @@ evaluate:
     mov [numbers_read], byte 0
     mov [is_negative], byte 0
     mov [is_result_negative], byte 0
+    mov [is_second_operand_negative], byte 0
 
     jmp evaluate                            ;jump back and continue
 
@@ -286,6 +288,8 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     evaluatestring_after_firstloop:
 
+    call _check_second_operand
+
     xor r8, r8
     mov r8b, 0                              ;specify operation(1 -> +, 2 -> -, 3 -> *, 4 -> /)
 
@@ -353,6 +357,13 @@ _evaluate_string:                           ;evaluate string stored in expressio
         mov [first_operand], rdx
     evaluatestring_aftercheck:
 
+    mov rdx, [second_operand]
+    cmp [is_second_operand_negative], byte 0
+    je evaluatestring_aftercheck_second
+        neg rdx
+        mov [second_operand], rdx
+    evaluatestring_aftercheck_second:
+
     xor rax, rax
     xor rdx, rdx
 
@@ -409,9 +420,15 @@ _evaluate_string:                           ;evaluate string stored in expressio
     xor r14, r14
     cmp rax, 0
     jnl divnotneg
-        mov r14, 1
+        inc r14
         neg rax
     divnotneg:
+
+    cmp rbx, 0
+    jnl divnotneg_second
+        inc r14
+        neg rbx
+    divnotneg_second:
 
     div rbx
 
@@ -447,6 +464,7 @@ _evaluate_string:                           ;evaluate string stored in expressio
     mov [numbers_read], byte 0
     mov [is_negative], byte 0
     mov [is_result_negative], byte 0
+    mov [is_second_operand_negative], byte 0
 
     call _clear_expression_array
     call _clear_input_array
@@ -464,6 +482,106 @@ _evaluate_string:                           ;evaluate string stored in expressio
 
     mov esi, r12d                           ;restore previous values
     mov rcx, r13
+    ret
+
+;-------------------------------------------
+
+_check_second_operand:
+    
+    mov r14d, edi                           ;store previous values
+    mov r13, rcx                            
+
+    mov edi, esi
+
+    skip_operand:
+
+        cmp [edi], byte 48                  ;check if the digit is a number(it must be between 48, 57)
+        jl  after_skip_operand
+    
+        cmp [edi], byte 57
+        jg  after_skip_operand
+        
+        inc edi
+    loop skip_operand
+
+after_skip_operand:
+
+    cmp rcx, 0
+    je check_second_operand_return
+
+    xor r12, r12                            ;store number of operations between two operands
+    xor r11, r11                            ;pointer to last operation
+
+    check_second_operand_main_loop:
+
+        cmp [edi], byte 48                  ;check if the digit is a number(it must be between 48, 57)
+        jl  check_second_operand_not_number
+    
+        cmp [edi], byte 57
+        jg  check_second_operand_not_number
+
+        jmp after_check_second_operand_main_loop
+
+        check_second_operand_not_number:
+
+        cmp [edi], byte 43                  ;+ read
+        jne check_second_operand_notequal_plus
+        inc r12
+        mov r11d, edi
+        check_second_operand_notequal_plus:
+        je end_check_second_operand_main_loop
+
+        cmp [edi], byte 45                  ;- read
+        jne check_second_operand_notequal_minus
+        inc r12
+        mov r11d, edi
+        check_second_operand_notequal_minus:
+        je end_check_second_operand_main_loop
+
+        cmp [edi], byte 42                  ;* read
+        jne check_second_operand_notequal_mult
+        inc r12
+        mov r11d, edi
+        check_second_operand_notequal_mult:
+        je end_check_second_operand_main_loop
+
+        cmp [edi], byte 47                  ;/ read
+        jne check_second_operand_notequal_div
+        inc r12
+        mov r11d, edi
+        check_second_operand_notequal_div:
+        je end_check_second_operand_main_loop
+
+    end_check_second_operand_main_loop:
+        inc edi
+    loop check_second_operand_main_loop
+
+after_check_second_operand_main_loop:
+
+    cmp rcx, 0
+    je check_second_operand_return
+
+    cmp r12, 1
+    jle check_second_operand_return
+
+    cmp [r11d], byte 43
+    jne minus_check
+
+    mov [r11d], byte 32
+    jmp check_second_operand_return
+
+    minus_check:
+
+    cmp [r11d], byte 45
+    jne check_second_operand_return
+
+    mov [r11d], byte 32
+    mov [is_second_operand_negative], byte 1
+
+check_second_operand_return:
+    mov edi, r14d                           ;restore previous values
+    mov rcx, r13
+
     ret
 
 ;-------------------------------------------

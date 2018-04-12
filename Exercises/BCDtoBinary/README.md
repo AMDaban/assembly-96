@@ -1,5 +1,5 @@
 # BCD TO Binary
-convert BCD to binary
+convert BCD to binary<br />
 _bcd_to_binary converts a 16 digit (or less) unsigned number stored in rax to binary and store it in rbx
 
 ## Scripts

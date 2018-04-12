@@ -1,6 +1,6 @@
 # Is Prime
 checks if a number is prime or not<br />
-_is_prime checks if the number stored in rax is a prime number and if it is, put 1 in rbx otherwise put 0 in it
+_is_prime checks if the number stored in rax is a prime number and if it is, puts 1 in rbx otherwise puts 0 in it
 
 ## Scripts
  1. run.sh: <br />

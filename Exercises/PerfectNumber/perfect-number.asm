@@ -1,4 +1,5 @@
-;the answer will be in r12 as a boolean
+;_is_perfect_number checks the number stored in rax and if it was a perfect number put 1 in rbx otherwise put 0 in rbx
+;the answer will be in rbx as a boolean
 
 section .data
     number dq 8128          ;target number(we want to see if it is a perfect number or not)
@@ -7,13 +8,24 @@ section .text
 _start:
     mov rax, [number]       ;move number to rax register(this is not a part of the assignment)
 
+    call _is_perfect_number
+
+exit:
+    mov ebx, 0
+    mov eax, 1
+    int 80h
+
+;---------------------------
+
+_is_perfect_number:         ;_is_perfect_number checks the number stored in rax and if it was a perfect number put 1 in rbx otherwise put 0 in rbx
+
     mov r8, rax             ;read contents of rax and store it in r8
     mov r9, 1               ;the sum of the divisors will be in r9(1 is a trivial divisor)
     mov r10, 1              ;begin from 2 and check all numbers <= sqrt(number) (incremented in loop)
     
     mov r11, 1              ;just a constant
     mov rcx, 1              ;loop controller
-    mov r12, 0              ;clear r12
+    mov rbx, 0              ;clear rbx
 
     cmp r8, 1               ;jump out if number is one(special case)
     je exit
@@ -62,10 +74,8 @@ endloop:
     add r9, r10
 
 finilize:
-    cmp r8, r9              ;produce the answer(the answer is in r12: if r12 is 1 then the input is a perfect number)
-    cmove r12, r11
+    cmp r8, r9              ;produce the answer(the answer is in rbx: if rbx is 1 then the input is a perfect number)
+    cmove rbx, r11
 
-exit:
-    mov ebx, 0
-    mov eax, 1
-    int 80h
+    ret
+;---------------------------

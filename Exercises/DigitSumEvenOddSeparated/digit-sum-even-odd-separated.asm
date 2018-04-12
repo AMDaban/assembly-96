@@ -1,10 +1,23 @@
+;_digit_sum_even_odd_separated computes sum of even and odd digits of a number, the sum of evens will be in bx and the other will be in dx
 ;we treat ax az an unsigned number, the sum of evens will be in bx and the other will be in dx
+
 section .data
-    number dw 63458         ;target number(we want to compute the sum of its digits)
+    number dw 55554         ;target number(we want to compute the sum of its digits)
 section .text
     global _start
 _start:
     mov ax, [number]        ;move number to ax register(this is not a part of the assignment)
+
+    call _digit_sum_even_odd_separated
+
+exit:
+    mov ebx, 0
+    mov eax, 1
+    int 80h
+
+;---------------------------
+
+_digit_sum_even_odd_separated:
 
     xor r8, r8
     mov r8w, ax             ;read contents of rax and store it in r8
@@ -45,9 +58,9 @@ endloop:
     cmp r8, 0               ;if the actual number became 0 then break the loop
     loopne mainloop
 
-    mov dx, r9w             ;store final result in dx
+    mov dx, r10w             ;store final results in bx, dx
+    mov bx, r9w
 
-exit:
-    mov ebx, 0
-    mov eax, 1
-    int 80h
+    ret
+
+;---------------------------

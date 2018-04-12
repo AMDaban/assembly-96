@@ -1,5 +1,5 @@
 # Is Prime
-check ifs a number is prime or not<br />
+checks if a number is prime or not<br />
 _is_prime checks if the number stored in rax is a prime number and if it is, put 1 in rbx otherwise put 0 in it
 
 ## Scripts

@@ -1,10 +1,23 @@
+;_digit_sum computes sum of digits of the number stored in ax and store it in dx 
 ;we treat ax az an unsigned number, the answer will be in dx after the computation
+
 section .data
-    number dw 11         ;target number(we want to compute the sum of its digits)
+    number dw 51423         ;target number(we want to compute the sum of its digits)
 section .text
     global _start
 _start:
     mov ax, [number]        ;move number to ax register(this is not a part of the assignment)
+
+    call _digit_sum
+
+exit:
+    mov ebx, 0
+    mov eax, 1
+    int 80h
+
+;---------------------------
+
+_digit_sum:                 ;_digit_sum computes sum of digits of the number stored in ax and store it in dx 
 
     xor r8, r8
     mov r8w, ax             ;read contents of rax and store it in r8
@@ -28,7 +41,6 @@ mainloop:
 
     mov dx, r9w             ;store final result in dx
 
-exit:
-    mov ebx, 0
-    mov eax, 1
-    int 80h
+    ret
+
+;---------------------------

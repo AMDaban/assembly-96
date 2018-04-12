@@ -1,6 +1,10 @@
+;computeGCD computes GCD of first(ax) and second(bx) operands and store the result in dx
+;we assume that numbers in ax, bx are unsigned
+;0 <= firstOperand, secondOperand <= 2^16 - 1 
+
 section .data
-    firstOperand dw 60      ;first operand
-    secondOperand dw 220    ;second operand 
+    firstOperand dw 165     ;first operand
+    secondOperand dw 385    ;second operand 
 section .text
     global _start
 _start:
@@ -16,8 +20,16 @@ exit:
 
 ;---------------------------
 
-computeGCD:                 ;compute GCD og first(ax) and second(bx) operands and store the result in dx
+computeGCD:                 ;compute GCD of first(ax) and second(bx) operands and store the result in dx
     
+    xor rdx, rdx            ;clear rdx
+
+    cmp ax, 0               ;jump out if ax = 0 or bx = 0 
+    je exit
+
+    cmp bx, 0
+    je exit
+
     xor r8, r8              ;clear r8
     xor r9, r9              ;clear r9
 
@@ -48,3 +60,4 @@ cgcdmainloop:
     mov dx, r8w             ;move result to dx
 
     ret
+;---------------------------

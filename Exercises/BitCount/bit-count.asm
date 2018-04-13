@@ -23,7 +23,7 @@ _bit_count:                 ;_bit_count counts the number of bits with 1 value i
     mov r9, rcx
     mov r10, rdx
     
-    xor rbx, rbx            ;clear rbx, result will be in rbx
+    xor rbx, rbx            ;clear rbx, result will be in bl
     xor rcx, rcx
     xor rdx, rdx
 

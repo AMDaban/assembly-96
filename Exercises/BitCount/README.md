@@ -1,6 +1,6 @@
 # Bit Count
-counts the number of bits with 1 value<br />
-_bit_count counts the number of bits with 1 value in rax and store it in bl
+counts the number of bits with value 1<br />
+_bit_count counts the number of bits in rax with value 1 and store it in bl
 
 ## Scripts
  1. run.sh: <br />

@@ -1,6 +1,6 @@
 # Multiplication
 computes multiplication of two operand<br />
-_multiplication computes the multiplication of al, bl and store result in dxit in rbx
+_multiplication computes the multiplication of al, bl and store result in dx
 
 ## Scripts
  1. run.sh: <br />

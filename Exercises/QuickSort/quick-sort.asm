@@ -23,14 +23,16 @@ _start:
 
     call _quick_sort                    
 
-    mov rcx, len
-    mov r8, source
-    check_loop:
-    mov bx, [r8]
-check:
-    inc r8
-    inc r8
-    loop check_loop
+;uncomment lines below to test program
+
+;     mov rcx, len
+;     mov r8, source
+;     check_loop:
+;     mov bx, [r8]
+; check:
+;     inc r8
+;     inc r8
+;     loop check_loop
     
 exit:
     mov ebx, 0

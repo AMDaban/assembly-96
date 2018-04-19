@@ -1,8 +1,6 @@
 # Multiplication
 computes multiplication of two operand<br />
-_multiplication computes the multiplication of al, bl and store result in dx
-
-## Scripts
+_multiplication computes the multiplication of eax, ebx and store result in rdx
  1. run.sh: <br />
     compile, link and run the program <br />
     ```bash

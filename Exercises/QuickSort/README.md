@@ -1,4 +1,4 @@
-# BCD TO Binary
+# Quick Sort
 sorts an array<br />
 ;_quick_sort sorts parameter 1(target array) from parameter 2(start index) to parameter 3(end index)
 

@@ -1,6 +1,6 @@
 # Binary Search
 searches in an array<br />
-;_binary_search searches for parameter 4(key) in parameter 1(array) from start(parameter 2) to end(parameter 3) it in rbx
+;_binary_search searches for parameter 4(key) in parameter 1(array) from start(parameter 2) to end(parameter 3)
 
 ## Scripts
  1. run.sh: <br />

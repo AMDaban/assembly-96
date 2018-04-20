@@ -9,7 +9,7 @@ _bit_count counts the number of bits in rax with value 1 and store it in bl
     cd <REPOSITORY_ROOT>/Exercises/BitCount/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/BitCount/ && source run-with-gdb.sh

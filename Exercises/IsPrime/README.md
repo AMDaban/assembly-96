@@ -9,7 +9,7 @@ _is_prime checks if the number stored in rax is a prime number and if it is, put
     cd <REPOSITORY_ROOT>/Exercises/IsPrime/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/IsPrime/ && source run-with-gdb.sh

@@ -9,7 +9,7 @@ _digit_sum computes sum of digits of the number stored in ax and store it in dx
     cd <REPOSITORY_ROOT>/Exercises/DigitSum/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/DigitSum/ && source run-with-gdb.sh

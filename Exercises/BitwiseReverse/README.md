@@ -9,7 +9,7 @@ _bitwise_reverse reverses the arrange of the bits in rax and stores result in rd
     cd <REPOSITORY_ROOT>/Exercises/BitwiseReverse/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/BitwiseReverse/ && source run-with-gdb.sh

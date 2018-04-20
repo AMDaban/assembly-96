@@ -9,7 +9,7 @@ sorts an array<br />
     cd <REPOSITORY_ROOT>/Exercises/QuickSort/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/QuickSort/ && source run-with-gdb.sh

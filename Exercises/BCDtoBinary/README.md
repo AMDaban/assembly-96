@@ -9,7 +9,7 @@ _bcd_to_binary converts a 16 digit (or less) unsigned number stored in rax to bi
     cd <REPOSITORY_ROOT>/Exercises/BCDtoBinary/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/BCDtoBinary/ && source run-with-gdb.sh

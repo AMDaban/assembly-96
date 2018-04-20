@@ -9,7 +9,7 @@ _bit_count_esi_to_edi counts the number of bits with value 1 between esi and edi
     cd <REPOSITORY_ROOT>/Exercises/BitCountESIToEDI/ && source run.sh
     ```
  
- 2. run.sh: <br />
+ 2. run-with-gdb.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
     cd <REPOSITORY_ROOT>/Exercises/BitCountESIToEDI/ && source run-with-gdb.sh

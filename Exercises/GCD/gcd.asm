@@ -3,8 +3,8 @@
 ;0 <= firstOperand, secondOperand <= 2^16 - 1 
 
 section .data
-    firstOperand dw 165     ;first operand
-    secondOperand dw 385    ;second operand 
+    firstOperand dw 33      ;first operand
+    secondOperand dw 77     ;second operand 
 section .text
     global _start
 _start:
@@ -25,10 +25,16 @@ computeGCD:                 ;compute GCD of first(ax) and second(bx) operands an
     xor rdx, rdx            ;clear rdx
 
     cmp ax, 0               ;jump out if ax = 0 or bx = 0 
-    je exit
+    jne ax_not_zero
+        mov dx, bx
+        jmp exit
+    ax_not_zero:
 
     cmp bx, 0
-    je exit
+    jne bx_not_zero
+        mov dx, ax
+        jmp exit
+    bx_not_zero:
 
     xor r8, r8              ;clear r8
     xor r9, r9              ;clear r9

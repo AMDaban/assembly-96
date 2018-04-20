@@ -1,4 +1,5 @@
 ;compute GCD of first(rax) and second(rbx) operands and store the result in rdx
+;we assume that numbers in rax, rbx are unsigned
 
 section .data
     firstOperand dq 20 

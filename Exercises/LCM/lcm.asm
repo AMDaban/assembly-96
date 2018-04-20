@@ -1,6 +1,12 @@
+;compute GCD of first(rax) and second(rbx) operands and store the result in rdx
+
 section .data
-    firstOperand dq 3       ;first operand
-    secondOperand dq 3      ;second operand 
+    firstOperand dq 20 
+    ;first operand
+    
+    secondOperand dq 12      
+    ;second operand
+
 section .text
     global _start
 _start:
@@ -17,7 +23,21 @@ exit:
 ;---------------------------
 
 computeGCD:                 ;compute GCD of first(rax) and second(rbx) operands and store the result in rdx
-    
+
+    xor rdx, rdx            ;clear rdx
+
+    cmp rax, 0              ;jump out if rax = 0 or rbx = 0 
+    jne ax_not_zero
+        mov rdx, rbx
+        ret
+    ax_not_zero:
+
+    cmp rbx, 0
+    jne bx_not_zero
+        mov rdx, rax
+        ret
+    bx_not_zero:
+
     xor r8, r8              ;clear r8
     xor r9, r9              ;clear r9
 
@@ -53,6 +73,14 @@ cgcdmainloop:
 
 computeLCM:                 ;compute LCM of first(rax) and second(rbx) operands and store the result in rdx
 
+    xor rdx, rdx
+
+    cmp rax, 0
+    je return
+
+    cmp rbx, 0
+    je return
+
     mov r11, rax            ;save first operand in r8
     mov r12, rbx            ;save second operand in r9
 
@@ -66,5 +94,5 @@ computeLCM:                 ;compute LCM of first(rax) and second(rbx) operands 
     div r10                 ;divide by GCD
 
     mov rdx, rax            ;move LCM to rdx
-
+return:
     ret

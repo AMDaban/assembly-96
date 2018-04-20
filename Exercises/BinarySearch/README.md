@@ -1,16 +1,16 @@
-# BCD TO Binary
-convert BCD to binary<br />
-_bcd_to_binary converts a 16 digit (or less) unsigned number stored in rax to binary and store it in rbx
+# Binary Search
+searches in an array<br />
+;_binary_search searches for parameter 4(key) in parameter 1(array) from start(parameter 2) to end(parameter 3) it in rbx
 
 ## Scripts
  1. run.sh: <br />
     compile, link and run the program <br />
     ```bash
-    cd <REPOSITORY_ROOT>/Exercises/BCDtoBinary/ && source run.sh
+    cd <REPOSITORY_ROOT>/Exercises/BinarySearch/ && source run.sh
     ```
  
  2. run.sh: <br />
     compile, link the program and run it with gdb <br />
     ```bash
-    cd <REPOSITORY_ROOT>/Exercises/BCDtoBinary/ && source run-with-gdb.sh
+    cd <REPOSITORY_ROOT>/Exercises/BinarySearch/ && source run-with-gdb.sh
     ```

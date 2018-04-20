@@ -1,4 +1,6 @@
- section .data
+;_binary_search searches for parameter 4(key) in parameter 1(array) from start(parameter 2) to end(parameter 3)
+
+section .data
     ;array to search in
     source dw -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 
@@ -6,7 +8,7 @@
     len equ ($ - source)/2
 
     ;key to search
-    search_key dw 10000    
+    search_key dw -2    
 
 section .text
     global _start                                          
@@ -29,7 +31,7 @@ exit:
     int 80h
 ;---------------------------------------
 
-_binary_search:                         ;
+_binary_search:                         ;_binary_search searches for parameter 4(key) in parameter 1(array) from start(parameter 2) to end(parameter 3)
 
     enter 14, 0
 
@@ -81,7 +83,7 @@ _binary_search:                         ;
 
         mov ax, r8w
         dec ax
-        push ax                            ;set third parameter(end)
+        push ax                             ;set third parameter(end)
 
         push word [rbp - 2]                 ;set second parameter(start)
 

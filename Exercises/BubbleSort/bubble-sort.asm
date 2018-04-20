@@ -1,5 +1,7 @@
+;sort Array with start pointer _array_ and length _len_
+
 section .data
-    source dw 10, 100, 8, 7, 103, 5, -20000, -3, 2, 1   ;input numbers
+    source dw 10, 100, 8, 7, 103, 5, 7, -20000, 7, -3, 2, 1, -2, -2, 1500
     len equ ($ - source)/2 
 section .bss
     array resw len
@@ -8,19 +10,30 @@ section .text
 _start:
     xor rcx, rcx
     mov cx, len
-    mov edi, source
-    mov esi, array
+    mov rdi, source
+    mov rsi, array
 
 transfer:
-    mov ax, [edi]                                       ;insert numbers in array
-    mov [esi], ax
+    mov ax, [rdi]                                       ;insert numbers in array
+    mov [rsi], ax
 
-    add esi, 2
-    add edi, 2
+    add rsi, 2
+    add rdi, 2
 
     loop transfer
 
     call bubblesort
+
+    ;uncomment this block of code to test the program
+
+    mov rdi, array
+    mov rcx, len
+    lloooopp:
+        mov ax, [rdi]
+        check:
+        inc rdi
+        inc rdi
+    loop lloooopp
 
 exit:
     mov ebx, 0
@@ -43,7 +56,7 @@ bubblesort:                                             ;sort Array with start p
 
 mainloop:                                               ;main loop of bubble sort
 
-    mov esi, array
+    mov rsi, array
     
     xor r9, r9
 
@@ -53,16 +66,16 @@ mainloop:                                               ;main loop of bubble sor
         
         xor r10, r10
         xor r11, r11 
-        mov r10w, [esi]
-        mov r11w, [esi + 2]
+        mov r10w, [rsi]
+        mov r11w, [rsi + 2]
         cmp r10w, r11w                                  ;check if [esi] > [esi + 2] (two consecutive numbers in array)
         jng endinnerloop
 
-        mov [esi], r11w                                 ;if [esi] > [esi + 2] then swap [esi], [esi + 2] (two consecutive numbers in array)
-        mov [esi + 2], r10w
+        mov [rsi], r11w                                 ;if [esi] > [esi + 2] then swap [esi], [esi + 2] (two consecutive numbers in array)
+        mov [rsi + 2], r10w
 
     endinnerloop:
-        add esi, 2
+        add rsi, 2
         cmp r9w, cx
         jne innerloop
     
@@ -70,3 +83,5 @@ mainloop:                                               ;main loop of bubble sor
 
 return:
     ret
+
+;-------------------------------------------------------

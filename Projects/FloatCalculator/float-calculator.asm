@@ -9,6 +9,22 @@ section .data
     first_operand_sign  db 0
     second_operand_sign db 0
 
+    fn_length           db 0
+    fn_dot              db 0
+    fn_dot_read         db 0
+    sn_length           db 0
+    sn_dot              db 0
+    sn_dot_read         db 0
+
+    msg                 dq 0
+    msglen              dq 0
+
+    number_max_size     equ 10
+
+section .bss
+    first_number        resb number_max_size
+    second_number       resb number_max_size
+
 section .text
     global _start                                          
 _start:
@@ -29,13 +45,9 @@ read_exp:
 
     read_exp_loop:
         call read_single_char
-
+    
         mov r8b, 'x'
         cmp r8b, [input_char]
-
-        ; mov al, [first_operand_sign]
-        ; mov bl, [second_operand_sign]
-
         je exit
 
         mov r8b, ' '
@@ -116,7 +128,7 @@ read_exp:
         inc r9b
         mov [expression_state], r9b
 
-        not_have_to_inc:
+        not_have_to_inc: 
 
         mov r9b, [expression_state]
         inc r9b
@@ -124,7 +136,7 @@ read_exp:
 
         call extract_number
 
-        not_a_number:
+        not_a_number:    
 
         end_read_exp_loop:
         jmp read_exp_loop
@@ -133,13 +145,121 @@ read_exp:
 ;--------------------------------
 extract_number:
 
-    ret    
+    push rsi
+    push rax
+    push rbx
+    push rcx
+    
+    mov r8b, 2
+    cmp r8b, [expression_state]
+    jne extract_number_state_not_1
+
+    mov rsi, first_number
+    mov rax, fn_length
+    mov rbx, fn_dot
+    mov rcx, fn_dot_read
+
+    jmp extract_number_ready
+
+    extract_number_state_not_1:
+
+    mov rsi, second_number
+    mov rax, sn_length
+    mov rbx, sn_dot
+    mov rcx, sn_dot_read
+
+    extract_number_ready:
+
+    call write_char
+
+    extract_number_main_loop:
+        mov r8b, [rax]
+        cmp r8b, number_max_size
+        je extract_number_end
+
+        call read_single_char
+
+        mov r8b, 'x'
+        cmp r8b, [input_char]
+        je exit
+
+        mov r8b, [input_char]
+        cmp r8b, '.'
+        jne not_dot
+
+        mov r8b, 1
+        mov [rcx], r8b
+        
+        jmp extract_number_main_loop_end
+
+        not_dot:
+
+        mov r8b, '0'
+        cmp r8b, [input_char]
+        jg extract_number_not_a_number
+
+        mov r8b, '9'
+        cmp r8b, [input_char]
+        jl extract_number_not_a_number
+
+        jmp extract_number_number
+
+        extract_number_not_a_number:
+
+        jmp exit
+
+        extract_number_number:
+
+        call write_char
+
+        extract_number_main_loop_end:
+        jmp extract_number_main_loop
+
+    extract_number_after_loop:
+
+    extract_number_end:
+    
+    pop rcx
+    pop rbx
+    pop rax
+    pop rsi
+
+    ret
+;--------------------------------
+write_char:
+
+    mov r8b, [input_char]
+    mov byte [rsi], r8b
+
+    inc rsi
+
+    mov r8b, [rax]
+    inc r8b
+    mov [rax], r8b
+
+    mov r8b, [rcx]
+    cmp r8b, 0
+    je no_dot
+
+    mov r8b, [rbx]
+    inc r8b
+    mov [rbx], r8b
+
+    no_dot:
+    ret
+
 ;--------------------------------
 prepare_for_calcaulation:
 
     mov byte [expression_state], 0
     mov byte [first_operand_sign], 0
     mov byte [second_operand_sign], 0
+    mov byte [fn_length], 0
+    mov byte [fn_dot], 0
+    mov byte [fn_dot_read], 0
+    mov byte [sn_length], 0
+    mov byte [sn_dot], 0
+    mov byte [sn_dot_read], 0
 
     ret    
 ;--------------------------------
@@ -149,6 +269,8 @@ read_single_char:
     push rdi
     push rsi
     push rdx
+    push rcx
+    push rbx
 
     mov rax, 0
 	mov rdi, 0
@@ -156,6 +278,8 @@ read_single_char:
 	mov rdx, 2
 	syscall
 
+    pop rbx
+    pop rcx
     pop rdx
     pop rsi
     pop rdi
@@ -244,4 +368,38 @@ write_stdin_termios:
         pop rax
         ret
 
+;-------------------------------------------
+
+print_string:                              
+    push rax
+    push rbx
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, [msg]
+    mov edx, [msglen]
+ 
+    int 80h     
+
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax                            
+    
+    ret
+
 ;--------------------------------
+
+; mov r8, first_number
+; mov [msg], r8
+
+; mov r8, number_max_size
+; mov [msglen], r8
+
+; call print_string

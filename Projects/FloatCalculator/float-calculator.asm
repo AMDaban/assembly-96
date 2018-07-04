@@ -8,6 +8,7 @@ section .data
     expression_state    db 0
     first_operand_sign  db 0
     second_operand_sign db 0
+    operation           db 0
 
     fn_length           db 0
     fn_dot              db 0
@@ -18,6 +19,9 @@ section .data
 
     msg                 dq 0
     msglen              dq 0
+
+    white_space         db ' '
+    new_line            db 12
 
     number_max_size     equ 10
 
@@ -45,101 +49,235 @@ read_exp:
 
     read_exp_loop:
         call read_single_char
-    
-        mov r8b, 'x'
-        cmp r8b, [input_char]
-        je exit
 
-        mov r8b, ' '
+        call check_char    
+
+        jmp read_exp_loop
+
+    ret
+;--------------------------------
+
+check_char:
+
+    mov r8b, 'x'
+    cmp r8b, [input_char]
+    je exit
+
+    mov r8b, '='
+    cmp r8b, [input_char]
+    jne check_char_not_equal
+    call eval
+    check_char_not_equal:
+
+    mov r8b, 6
+    cmp r8b, [expression_state]
+    jle end_check_char
+
+    mov r8b, ' '
+    cmp r8b, [input_char]
+    je end_check_char
+
+    mov r8b, [expression_state]
+    cmp r8b, 2
+    jne check_char_state_not_2
+
+    mov r8b, '+'
+    cmp r8b, [input_char]
+    jne not_plus
+
+    mov r8b, 1
+    mov [operation], r8b
+    jmp state_2_finish
+
+    not_plus:
+
+    mov r8b, '-'
+    cmp r8b, [input_char]
+    jne not_minus
+
+    mov r8b, 2
+    mov [operation], r8b
+    jmp state_2_finish
+
+    not_minus:
+
+    mov r8b, '*'
+    cmp r8b, [input_char]
+    jne not_mult
+
+    mov r8b, 3
+    mov [operation], r8b
+    jmp state_2_finish
+
+    not_mult:
+
+    mov r8b, '/'
+    cmp r8b, [input_char]
+    jne not_div
+
+    mov r8b, 4
+    mov [operation], r8b
+    jmp state_2_finish
+
+    not_div:
+
+    jmp end_check_char
+
+    state_2_finish:
+
+    mov r9b, [expression_state]
+    inc r9b
+    mov [expression_state], r9b
+
+    jmp end_check_char
+
+    check_char_state_not_2:
+
+    mov r8b, 0
+    cmp r8b, [expression_state]
+    je status_is_0_or_3
+
+    mov r8b, 3
+    cmp r8b, [expression_state]
+    je status_is_0_or_3
+
+    jmp status_is_not_0_3
+
+    status_is_0_or_3:
+
+        mov r8b, '-'
         cmp r8b, [input_char]
-        je end_read_exp_loop
+        jne sign_is_not_minus
 
         mov r8b, 0
         cmp r8b, [expression_state]
-        je status_is_0_or_3
+        jne status_is_3
 
-        mov r8b, 3
-        cmp r8b, [expression_state]
-        je status_is_0_or_3
+        mov byte [first_operand_sign], 1
+        
+        mov r9b, [expression_state]
+        inc r9b
+        mov [expression_state], r9b
 
         jmp status_is_not_0_3
 
-        status_is_0_or_3:
-
-            mov r8b, '-'
-            cmp r8b, [input_char]
-            jne sign_is_not_minus
-
-            mov r8b, 0
-            cmp r8b, [expression_state]
-            jne status_is_3
-
-            mov byte [first_operand_sign], 1
-            
-            mov r9b, [expression_state]
-            inc r9b
-            mov [expression_state], r9b
-
-            jmp status_is_not_0_3
-
-            status_is_3:
-                    
-            mov byte [second_operand_sign], 1
-
-            mov r9b, [expression_state]
-            inc r9b
-            mov [expression_state], r9b
-
-            jmp status_is_not_0_3
-
-            sign_is_not_minus:
-
-            mov r8b, '+'
-            cmp r8b, [input_char]
-            jne status_is_not_0_3
-
-            mov r9b, [expression_state]
-            inc r9b
-            mov [expression_state], r9b
-
-        status_is_not_0_3:
-
-        mov r8b, '0'
-        cmp r8b, [input_char]
-        jg not_a_number
-
-        mov r8b, '9'
-        cmp r8b, [input_char]
-        jl not_a_number
-
-        mov r8b, 0
-        cmp r8b, [expression_state]
-        je have_to_inc
-
-        mov r8b, 3
-        cmp r8b, [expression_state]
-        je have_to_inc
-
-        jmp not_have_to_inc
-
-        have_to_inc:
+        status_is_3:
+                
+        mov byte [second_operand_sign], 1
 
         mov r9b, [expression_state]
         inc r9b
         mov [expression_state], r9b
 
-        not_have_to_inc: 
+        jmp status_is_not_0_3
+
+        sign_is_not_minus:
+
+        mov r8b, '+'
+        cmp r8b, [input_char]
+        jne status_is_not_0_3
 
         mov r9b, [expression_state]
         inc r9b
         mov [expression_state], r9b
 
-        call extract_number
+    status_is_not_0_3:
 
-        not_a_number:    
+    mov r8b, '0'
+    cmp r8b, [input_char]
+    jg not_a_number
 
-        end_read_exp_loop:
-        jmp read_exp_loop
+    mov r8b, '9'
+    cmp r8b, [input_char]
+    jl not_a_number
+
+    mov r8b, 0
+    cmp r8b, [expression_state]
+    je have_to_inc
+
+    mov r8b, 3
+    cmp r8b, [expression_state]
+    je have_to_inc
+
+    jmp not_have_to_inc
+
+    have_to_inc:
+
+    mov r9b, [expression_state]
+    inc r9b
+    mov [expression_state], r9b
+
+    not_have_to_inc: 
+
+    mov r9b, [expression_state]
+    inc r9b
+    mov [expression_state], r9b
+
+    call extract_number
+
+    not_a_number:
+
+    end_check_char:
+    ret
+
+;--------------------------------
+eval:
+    mov al, [first_operand_sign]
+    mov bl, [second_operand_sign]
+    mov cl, [operation]
+    x:
+    call print_conf
+
+    ret
+
+;--------------------------------
+print_conf:
+
+    call print_new_line
+
+    mov r8, first_number
+    mov [msg], r8
+
+    mov r8, number_max_size
+    mov [msglen], r8
+
+    call print_string
+
+    call print_white_space
+
+    mov r8, second_number
+    mov [msg], r8
+
+    mov r8, number_max_size
+    mov [msglen], r8
+
+    call print_string
+
+    ret
+
+;--------------------------------
+print_new_line:
+
+    mov r8, new_line
+    mov [msg], r8
+
+    mov r8, 1
+    mov [msglen], r8
+
+    call print_string
+
+    ret
+
+;--------------------------------
+print_white_space:
+
+    mov r8, white_space
+    mov [msg], r8
+
+    mov r8, 1
+    mov [msglen], r8
+
+    call print_string
 
     ret
 ;--------------------------------
@@ -206,7 +344,8 @@ extract_number:
 
         extract_number_not_a_number:
 
-        jmp exit
+        call check_char
+        jmp extract_number_end
 
         extract_number_number:
 
@@ -260,6 +399,7 @@ prepare_for_calcaulation:
     mov byte [sn_length], 0
     mov byte [sn_dot], 0
     mov byte [sn_dot_read], 0
+    mov byte [operation], 0
 
     ret    
 ;--------------------------------

@@ -38,6 +38,12 @@ section .data
     error_message       db '(Error)', 10
     error_message_len   equ $ - error_message
 
+    oldControlWord      dw 0
+    newControlWord      dw 0
+
+    result              dq 0
+    res_dot             db 0
+
 section .bss
     first_number        resb number_max_size
     second_number       resb number_max_size
@@ -239,6 +245,16 @@ check_char:
 ;--------------------------------
 eval:
 
+    push rax
+
+    fstcw [oldControlWord]
+    mov ax, [oldControlWord]
+    and ah, 11110011b
+    mov [newControlWord], ax
+    fldcw [newControlWord]
+
+    pop rax
+
     mov r8b, [fn_length]
     cmp r8b, 0
     jle eval_error
@@ -286,7 +302,57 @@ eval:
     mov [sn_res], r8
 
     call calc
-    x:
+
+    call print_res
+
+    call prepare_for_calcaulation
+
+    ret
+;--------------------------------
+print_res:
+
+    push rdx
+    push rcx
+
+    call print_new_line
+
+    xor rdx, rdx
+    mov dl, [fn_dot]
+    mov r8b, [sn_dot]
+    cmp dl, r8b
+    jge its_ok
+
+    mov dl, r8b
+
+    its_ok:
+
+    xor rcx, rcx
+    mov cl, dl
+
+    xor dl, dl
+
+    cmp cx, 0
+    je not_ok
+
+    its_ok_loop:
+
+        fild qword [ten_literal]
+        fmul st1
+        ffree st1
+
+        inc dl
+
+    loop its_ok_loop
+
+    not_ok:
+
+    fistp qword [result]
+    mov [res_dot], dl
+
+    call print_white_space
+
+    pop rcx
+    pop rdx
 
     ret
 ;--------------------------------
@@ -596,6 +662,8 @@ prepare_for_calcaulation:
     mov byte [string_length], 0
     mov qword [pointer_to_number], 0
     mov qword [s_to_i_res], 0
+    mov qword [result], 0
+    mov qword [res_dot], 0
 
     ret    
 ;--------------------------------

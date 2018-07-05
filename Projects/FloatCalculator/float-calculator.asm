@@ -331,6 +331,12 @@ print_res:
     mov dl, r8b
 
     its_ok:
+    cmp dl, 5
+    jge goooooo
+
+    mov dl, 5
+
+    goooooo:
 
     xor rcx, rcx
     mov cl, dl
@@ -381,10 +387,37 @@ print_number:
 
     not_need_minus:
 
+    mov r13, rax
+
+    loopppp:
     xor rdx, rdx
     mov r11, 10000000000
+    mov rax, r13
     div r11
-    mov rax, rdx
+    
+    cmp rax, 0
+    je zero_zero
+
+    xor rdx, rdx
+    mov r11, 10
+    mov rax, r13
+    div r11
+
+    mov r13, rax
+
+    mov r8b, [res_dot]
+    cmp r8b, 0
+    je issss
+
+    dec r8b
+    mov [res_dot], r8b
+
+    issss:
+
+    jmp loopppp
+
+    zero_zero:
+        mov rax, r13
 
     mov rsi, final_result
     add rsi, 19

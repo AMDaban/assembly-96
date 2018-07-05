@@ -11,6 +11,7 @@ section .data
     operation           db 0
 
     minus_lit           db '-'
+    is_res_neg          db 0
 
     fn_length           db 0
     fn_dot              db 0
@@ -312,8 +313,6 @@ eval:
 
     call print_res
 
-    call prepare_for_calcaulation
-
     ret
 ;--------------------------------
 print_res:
@@ -358,9 +357,6 @@ print_res:
 
     call print_number
 
-    call prepare_for_calcaulation
-    
-
     call print_white_space
 
     pop rcx
@@ -381,6 +377,7 @@ print_number:
     call print_minus
     neg rax
     mov [result], rax
+    mov byte [is_res_neg], 1
 
     not_need_minus:
 
@@ -471,9 +468,49 @@ print_number:
     inc rsi
 
     mov [msg], rsi
+    cmp r13, 0
+    je not_dmn_needed
     inc r12
+    not_dmn_needed:
     mov [msglen], r12
     call print_string
+
+    call prepare_for_calcaulation
+    mov byte [expression_state], 2
+
+    mov r8b, [is_res_neg]
+    mov byte [first_operand_sign], r8b
+
+    mov r14, r12
+    cmp r13, 0
+    je not_dmn_needed_1
+    dec r14
+    not_dmn_needed_1:
+    mov [fn_length], r14b
+    
+    mov [fn_dot], r13b
+
+    mov rcx, r12
+    mov rdi, first_number
+    mov r15, 0
+    loop_damn:
+
+    mov r8b, [rsi]
+    inc rsi
+    cmp r8b, '.'
+    je end_looop
+
+    mov [rdi], r8b
+    inc rdi
+    inc r15
+
+    cmp r15, 10
+    je aaffteer
+
+    end_looop:
+    loop loop_damn
+
+    aaffteer:
 
     pop rsi
     pop rdx
@@ -802,7 +839,7 @@ prepare_for_calcaulation:
     mov qword [res_dot], 0
     mov byte [f1_flag], 0
     mov byte [f2_flag], 0
-
+    mov byte [is_res_neg], 0
     ret    
 ;--------------------------------
 read_single_char:
@@ -996,12 +1033,3 @@ string_to_integer:
     ret
 
 ;-------------------------------------------
-
-
-; mov r8, first_number
-; mov [msg], r8
-
-; mov r8, number_max_size
-; mov [msglen], r8
-
-; call print_string

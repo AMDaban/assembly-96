@@ -17,13 +17,23 @@ section .data
     sn_dot              db 0
     sn_dot_read         db 0
 
+    fn_res              dq 0
+    sn_res              dq 0
+
     msg                 dq 0
     msglen              dq 0
 
+    pointer_to_number   dq 0
+    string_length       db 0
+    s_to_i_res          dq 0
+
     white_space         db ' '
-    new_line            db 12
+    new_line            db 10
 
     number_max_size     equ 10
+
+    error_message       db '(Error)', 10
+    error_message_len   equ $ - error_message
 
 section .bss
     first_number        resb number_max_size
@@ -66,7 +76,10 @@ check_char:
     mov r8b, '='
     cmp r8b, [input_char]
     jne check_char_not_equal
+
     call eval
+    jmp end_check_char
+    
     check_char_not_equal:
 
     mov r8b, 6
@@ -222,14 +235,75 @@ check_char:
 
 ;--------------------------------
 eval:
-    mov al, [first_operand_sign]
-    mov bl, [second_operand_sign]
-    mov cl, [operation]
-    x:
-    call print_conf
+
+    mov r8b, [fn_length]
+    cmp r8b, 0
+    jle eval_error
+
+    mov r8b, [sn_length]
+    cmp r8b, 0
+    jle eval_error
+
+    mov r8b, [operation]
+    cmp r8b, 0
+    jle eval_error
+
+    jmp eval_ready
+
+    eval_error:
+
+    call print_error
+
+    call prepare_for_calcaulation
 
     ret
 
+    eval_ready:
+
+    mov r8, first_number
+    mov [pointer_to_number], r8
+
+    mov r8b, [fn_length]
+    mov [string_length], r8b
+
+    call string_to_integer
+
+    mov r8, [s_to_i_res]
+    mov [fn_res], r8
+
+    mov r8, second_number
+    mov [pointer_to_number], r8
+
+    mov r8b, [sn_length]
+    mov [string_length], r8b
+
+    call string_to_integer
+
+    mov r8, [s_to_i_res]
+    mov [sn_res], r8
+
+    call calc
+
+    ret
+;--------------------------------
+calc:
+
+    ret
+
+;--------------------------------
+print_error:
+
+    call print_white_space
+
+    mov r8, error_message
+    mov [msg], r8
+
+    mov r8, error_message_len
+    mov [msglen], r8
+
+    call print_string
+
+    ret
 ;--------------------------------
 print_conf:
 
@@ -400,6 +474,9 @@ prepare_for_calcaulation:
     mov byte [sn_dot], 0
     mov byte [sn_dot_read], 0
     mov byte [operation], 0
+    mov byte [string_length], 0
+    mov qword [pointer_to_number], 0
+    mov qword [s_to_i_res], 0
 
     ret    
 ;--------------------------------
@@ -535,6 +612,66 @@ print_string:
     ret
 
 ;--------------------------------
+
+string_to_integer:
+
+    push rsi 
+    push rcx
+    push rax
+
+    mov rsi, [pointer_to_number]
+
+    xor r8, r8
+    mov r8b, [string_length]
+    add rsi, r8
+    dec rsi
+
+    xor r8, r8
+    mov r8b, [string_length]
+    mov rcx, r8
+
+    mov r9, 1
+
+    xor r10, r10
+
+    stringtointegerloop_mainloop:
+
+        xor r11, r11 
+        mov r11b, [rsi]
+        sub r11b, 48
+
+        mov rax, r11
+        mul r9
+        add r10, rax
+
+        jno notoverflow
+
+        xor rax, rax
+        pop rcx
+        pop rsi
+        ret
+
+        notoverflow:
+        mov rax, r9
+        mov r11, 10
+        mul r11
+        mov r9, rax
+
+        dec rsi
+
+    loop stringtointegerloop_mainloop
+
+    mov rax, r10
+    mov [s_to_i_res], rax
+
+    pop rax
+    pop rcx
+    pop rsi
+
+    ret
+
+;-------------------------------------------
+
 
 ; mov r8, first_number
 ; mov [msg], r8

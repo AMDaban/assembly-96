@@ -30,6 +30,9 @@ section .data
     white_space         db ' '
     new_line            db 10
 
+    ten_literal         dq 10
+    minus_one           dq -1
+
     number_max_size     equ 10
 
     error_message       db '(Error)', 10
@@ -283,10 +286,126 @@ eval:
     mov [sn_res], r8
 
     call calc
+    x:
 
     ret
 ;--------------------------------
 calc:
+    push rcx
+
+    xor rcx, rcx
+    mov cl, [fn_dot]
+
+    fild qword [fn_res]
+    fild qword [ten_literal]
+
+    cmp cl, 0
+    je calc_not_have_zero
+
+    calc_1_loop:
+
+        fdiv st1, st0
+
+    loop calc_1_loop
+
+    calc_not_have_zero:
+
+    mov r8b, [first_operand_sign]
+    cmp r8b, 0
+    je first_not_minus
+
+    fild qword [minus_one]
+    fmul st2, st0
+    faddp st1, st0
+
+    first_not_minus:
+
+    xor rcx, rcx
+    mov cl, [sn_dot]
+
+    fild qword [sn_res]
+    fild qword [ten_literal]
+
+    cmp cl, 0
+    je calc_not_have_zero_1
+
+    calc_2_loop:
+
+        fdiv st1, st0
+
+    loop calc_2_loop
+
+    calc_not_have_zero_1:
+
+    mov r8b, [second_operand_sign]
+    cmp r8b, 0
+    je second_not_minus
+
+    fild qword [minus_one]
+    fmul st2, st0
+    faddp st1, st0
+
+    second_not_minus:
+
+    fldz
+    fadd st0, st2
+
+    fldz
+    fadd st0, st5
+
+    mov r8b, [operation]
+    cmp r8b, 1
+    jne calc_not_sum
+
+    fadd st0, st1
+    jmp end_calc
+
+    calc_not_sum:
+
+    mov r8b, [operation]
+    cmp r8b, 2
+    jne calc_not_minus
+
+    fsub st0, st1
+    jmp end_calc
+
+    calc_not_minus:
+
+    mov r8b, [operation]
+    cmp r8b, 3
+    jne calc_not_mult
+
+    fmul st0, st1
+    jmp end_calc
+
+    calc_not_mult:
+
+    mov r8b, [operation]
+    cmp r8b, 4
+    jne calc_not_div
+
+    mov r9, [sn_res]
+    cmp r9, 0
+    je div_zero
+
+    fdiv st0, st1
+    jmp end_calc
+
+    div_zero:
+    
+    call print_error
+    fldz
+
+    calc_not_div:
+
+    end_calc:
+
+    ffree st1
+    ffree st2
+    ffree st3
+    ffree st4
+    ffree st5
+    pop rcx
 
     ret
 

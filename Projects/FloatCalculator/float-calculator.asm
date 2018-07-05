@@ -508,12 +508,12 @@ print_number:
     mov [msglen], r12
     call print_string
 
+    mov r8b, [is_res_neg]    
+
     call prepare_for_calcaulation
     mov byte [expression_state], 2
 
-    mov r8b, [is_res_neg]
     mov byte [first_operand_sign], r8b
-
     mov r14, r12
     cmp r13, 0
     je not_dmn_needed_1

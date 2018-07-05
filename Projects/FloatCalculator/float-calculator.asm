@@ -10,6 +10,8 @@ section .data
     second_operand_sign db 0
     operation           db 0
 
+    minus_lit           db '-'
+
     fn_length           db 0
     fn_dot              db 0
     fn_dot_read         db 0
@@ -44,9 +46,14 @@ section .data
     result              dq 0
     res_dot             db 0
 
+    f1_flag             db 0
+    f2_flag             db 0
+
 section .bss
     first_number        resb number_max_size
     second_number       resb number_max_size
+
+    final_result        resb 20
 
 section .text
     global _start                                          
@@ -349,10 +356,128 @@ print_res:
     fistp qword [result]
     mov [res_dot], dl
 
+    call print_number
+
+    call prepare_for_calcaulation
+    
+
     call print_white_space
 
     pop rcx
     pop rdx
+
+    ret
+;--------------------------------
+print_number:
+
+    push rax
+    push rdx
+    push rsi
+
+    mov rax, [result]
+    cmp rax, 0
+    jnl not_need_minus
+
+    call print_minus
+    neg rax
+    mov [result], rax
+
+    not_need_minus:
+
+    xor rdx, rdx
+    mov r11, 10000000000
+    div r11
+    mov rax, rdx
+
+    mov rsi, final_result
+    add rsi, 19
+
+    xor r12, r12        ;length
+    xor r13, r13        ;res_dot
+    mov r13b, [res_dot]
+
+    final_damn_loop:
+
+        xor rdx, rdx
+        mov r11, 10
+        div r11
+
+        add rdx, 48
+        mov [rsi], dl
+        dec rsi
+
+        inc r12
+        cmp r12, r13
+        jne not_dot_needed
+
+        mov byte [rsi], '.'
+        dec rsi
+        
+        mov r14, 1
+        mov [f1_flag], r14b
+
+        cmp rax, 0
+        jne not_damn_zero
+
+        mov r14, 1
+        mov [f2_flag], r14b
+
+        not_damn_zero:
+
+        not_dot_needed:
+
+        cmp rax, 0
+        jne final_damn_loop
+
+    mov r8b, [f1_flag]
+    cmp r8b, 0
+    je is_damn_zero
+
+    mov r9b, [f2_flag]
+    cmp r9b, 0
+    je is_damn_ok
+
+    mov byte [rsi], '0'
+    dec rsi
+    inc r12
+    jmp is_damn_ok
+
+    is_damn_zero:
+
+        cmp r13, 0
+        je is_damn_ok
+
+        damn_damn_loop:
+
+        mov byte [rsi], '0'
+        dec rsi
+        inc r12
+
+        cmp r12, r13
+        je out_of_damn_damn_loop
+        jmp damn_damn_loop
+
+        out_of_damn_damn_loop:
+
+        mov byte [rsi], '.'
+        dec rsi
+
+        mov byte [rsi], '0'
+        dec rsi
+        inc r12
+
+    is_damn_ok:
+
+    inc rsi
+
+    mov [msg], rsi
+    inc r12
+    mov [msglen], r12
+    call print_string
+
+    pop rsi
+    pop rdx
+    pop rax
 
     ret
 ;--------------------------------
@@ -526,7 +651,18 @@ print_new_line:
     call print_string
 
     ret
+;--------------------------------
+print_minus:
 
+    mov r8, minus_lit
+    mov [msg], r8
+
+    mov r8, 1
+    mov [msglen], r8
+
+    call print_string
+
+    ret
 ;--------------------------------
 print_white_space:
 
@@ -664,6 +800,8 @@ prepare_for_calcaulation:
     mov qword [s_to_i_res], 0
     mov qword [result], 0
     mov qword [res_dot], 0
+    mov byte [f1_flag], 0
+    mov byte [f2_flag], 0
 
     ret    
 ;--------------------------------

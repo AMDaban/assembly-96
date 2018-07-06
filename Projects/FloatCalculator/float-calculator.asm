@@ -655,6 +655,7 @@ calc:
     div_zero:
     
     call print_error
+    call exit
     fldz
 
     calc_not_div:

